@@ -16,13 +16,24 @@ var session := Session.new(GRID)
 var meshes := {}  # kit piece name -> Mesh, shared by everything that shows it (Flyweight)
 var segments: Array[MeshInstance3D] = []
 var camera := Camera3D.new()
+var passenger := MeshInstance3D.new()
+var score_label := Label.new()
 var _clock := 0.0
 
 
 func _ready() -> void:
 	meshes = Stage.load_kit()
 	_build_stage()
-	_draw_dragon()
+	passenger.mesh = meshes["passenger"]
+	add_child(passenger)
+	var hud := CanvasLayer.new()
+	add_child(hud)
+	hud.add_child(score_label)
+	score_label.position = Vector2(16, 12)
+	score_label.add_theme_font_size_override("font_size", 24)
+	score_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	score_label.add_theme_constant_override("outline_size", 5)
+	_draw_session()
 
 
 ## Input arrives as events, so even a tap shorter than one frame is never missed.
@@ -37,7 +48,7 @@ func _process(delta: float) -> void:
 	while _clock >= TICK_SECONDS:
 		_clock -= TICK_SECONDS
 		session.tick()
-		_draw_dragon()
+		_draw_session()
 	_follow(delta)
 
 
@@ -53,6 +64,14 @@ func _follow(delta: float) -> void:
 	var target := _center(session.dragon.body[0]) + CAMERA_OFFSET
 	camera.position = camera.position.lerp(target, 1 - exp(-3 * delta))
 	camera.look_at(camera.position - CAMERA_OFFSET)
+
+
+func _draw_session() -> void:
+	passenger.visible = session.passenger_cell != Session.NO_PASSENGER
+	if passenger.visible:
+		passenger.position = _center(session.passenger_cell)
+	score_label.text = "Passengers: %d" % session.score
+	_draw_dragon()
 
 
 func _draw_dragon() -> void:

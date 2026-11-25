@@ -8,8 +8,8 @@ deno task art      uses Blender 5.2 (the header above)
 deno task art:lts  uses Blender 4.5 LTS, for Intel Macs, which Blender 5 dropped
 deno task blender  opens art/dragon_kit.blend in the Blender app, to look around
 
-Every piece fills one 1x1 grid cell and is made by a builder function listed in
-PIECES (the dragon) or TILES (the ground). The starter's builders all use voxels(),
+Every piece fits in one 1x1 grid cell and is made by a builder function listed in
+PIECES, TILES, or PICKUPS. The starter's builders all use voxels(),
 but a builder can make any geometry: swap one out and the game picks it up by name.
 
 Conventions the game relies on (Blender coordinates, Z up):
@@ -96,6 +96,7 @@ def make_materials():
         "s": pbr_material("Stone", "#9e9883", roughness=0.85),
         "t": pbr_material("Moss", "#6f8558", roughness=0.9),
         "w": pbr_material("Brick", "#6b4d3d", roughness=0.9),
+        "p": pbr_material("Passenger Jacket", "#45b8ed", roughness=0.7),
     })
 
 
@@ -192,6 +193,30 @@ def build_wall(bm):
         """] * 3)
 
 
+def build_passenger(bm):
+    voxels(bm, ["""
+        ....
+        .ww.
+        .ww.
+        ....
+        """, """
+        ....
+        .pp.
+        .pp.
+        ....
+        """, """
+        ....
+        pppp
+        .pp.
+        ....
+        """, """
+        ....
+        .**.
+        .**.
+        ....
+        """])
+
+
 PIECES = {  # the dragon kit; the game finds each mesh by these names
     "head": build_head,
     "straight": build_straight,
@@ -202,6 +227,7 @@ TILES = {  # one entry per kind in core/board.gd's TILES; a new kind is one buil
     "floor": build_floor,
     "wall": build_wall,
 }
+PICKUPS = {"passenger": build_passenger}
 
 
 # --- Objects and layout ---------------------------------------------------------
@@ -237,7 +263,7 @@ def lay_out_kit(scene):
     """One row per registry, so a GLB viewer shows a tidy catalog instead of every piece
     stacked on the origin. Each mesh is still modeled around its own cell's center."""
     spacing = 1.5
-    for row, registry in enumerate([PIECES, TILES]):
+    for row, registry in enumerate([PIECES, TILES, PICKUPS]):
         for column, (name, build) in enumerate(registry.items()):
             make_object(scene, name, build, location=(column * spacing, -row * spacing, 0))
 

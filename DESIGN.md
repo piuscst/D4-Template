@@ -5,8 +5,8 @@ to learn where your project is headed. Replace each _italic prompt_.
 
 ## Target
 
-_One or two sentences: what is this creature, what does it eat, where does it live,
-and what should playing feel like?_
+Steer a little train around a 48×48 rail yard and pick up waiting passengers.
+Each passenger adds a carriage, so turns get tighter as the train gets longer.
 
 ## Menu choices
 
@@ -29,7 +29,7 @@ already here from the starter; keep them accurate as you change things.
 | tick | one step of the rules; the dragon moves one cell | `Session.tick()`, `Dragon.tick()` |
 | tile kind | what a cell is made of, such as `floor` or `wall` | `Board.TILES`, `TILES` in `tools/build_art.py` |
 | piece | one model in the kit: head, straight, turn, tail | `Kit.Piece`, `PIECES` in `tools/build_art.py` |
-| _word_ | _meaning_ | _where_ |
+| passenger | a pickup that adds one carriage and one point | `Session.passenger_cell`, `Session.score` |
 
 ## Where things live
 
