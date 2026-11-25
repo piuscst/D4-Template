@@ -32,6 +32,7 @@ Editing by hand in Blender instead:
   unless you redo it by hand, and a .blend is hard to review in a diff.
 """
 
+from math import pi
 from pathlib import Path
 
 import bpy  # first: importing bpy is what makes bmesh and mathutils available
@@ -89,14 +90,17 @@ def srgb(hex_code):
 def make_materials():
     """One material per voxel character. Runs after reset_scene(), which would erase them."""
     PALETTE.update({
-        "#": pbr_material("Scales", "#2f9e5b", metallic=0.2, roughness=0.45),
+        "#": pbr_material("Train Paint", "#b82f35", metallic=0.1, roughness=0.42),
         "*": pbr_material("Gold", "#f2bf3a", metallic=1.0, roughness=0.3),
-        "e": pbr_material("Eye", "#ffb22e", emission="#ffa21a", strength=4.0),
-        "o": pbr_material("Ember", "#ff6a1a", emission="#ff4a08", strength=3.0),
-        "s": pbr_material("Stone", "#9e9883", roughness=0.85),
-        "t": pbr_material("Moss", "#6f8558", roughness=0.9),
+        "e": pbr_material("Headlamp", "#ffe4a6", emission="#ffc962", strength=1.6),
+        "o": pbr_material("Tail Lamp", "#fb5a37", emission="#f53720", strength=1.2),
+        "s": pbr_material("Yard Pavers", "#777f84", roughness=0.85),
+        "t": pbr_material("Inset Pavers", "#626b71", roughness=0.9),
         "w": pbr_material("Brick", "#6b4d3d", roughness=0.9),
         "p": pbr_material("Passenger Jacket", "#45b8ed", roughness=0.7),
+        "m": pbr_material("Dark Steel", "#283137", metallic=0.25, roughness=0.65),
+        "c": pbr_material("Coach Cream", "#e8c9a0", roughness=0.55),
+        "g": pbr_material("Windows", "#455e70", roughness=0.28),
     })
 
 
@@ -124,73 +128,101 @@ def voxels(bm, layers, below_ground=0):
                     face.material_index = PALETTE[char]
 
 
+def box(bm, center, size, color):
+    matrix = Matrix.Translation(center) @ Matrix.Diagonal((*size, 1.0))
+    cube = bmesh.ops.create_cube(bm, size=1.0, matrix=matrix)
+    for face in {f for v in cube["verts"] for f in v.link_faces}:
+        face.material_index = PALETTE[color]
+
+
+def cylinder(bm, center, radius, length, color, axis="Z"):
+    rotation = Matrix.Identity(4) if axis == "Z" else Matrix.Rotation(pi / 2, 4, axis)
+    shape = bmesh.ops.create_cone(
+        bm, cap_ends=True, segments=12, radius1=radius, radius2=radius,
+        depth=length, matrix=Matrix.Translation(center) @ rotation,
+    )
+    for face in {f for v in shape["verts"] for f in v.link_faces}:
+        face.material_index = PALETTE[color]
+
+
+def chassis(bm):
+    box(bm, (0, 0, 0.18), (0.62, 0.72, 0.15), "m")
+    for x in (-0.32, 0.32):
+        for y in (-0.23, 0.23):
+            cylinder(bm, (x, y, 0.11), 0.11, 0.09, "m", axis="Y")
+
+
+def coupler(bm, x, y):
+    # Every connection reaches the cell edge with the same height and width.
+    size = (0.22, 0.18, 0.12) if x else (0.18, 0.22, 0.12)
+    box(bm, (x * 0.39, y * 0.39, 0.18), size, "m")
+
+
 def build_head(bm):
-    voxels(bm, ["""
-        .##.
-        ####
-        ####
-        .##.
-        """, """
-        ....
-        e##e
-        .##.
-        .##.
-        """, """
-        ....
-        ....
-        *..*
-        ....
-        """])
+    chassis(bm)
+    coupler(bm, 0, -1)
+    box(bm, (0, -0.16, 0.44), (0.54, 0.31, 0.42), "#")
+    box(bm, (0, -0.16, 0.68), (0.62, 0.37, 0.08), "m")
+    for x in (-0.272, 0.272):
+        box(bm, (x, -0.16, 0.51), (0.015, 0.16, 0.14), "g")
+    cylinder(bm, (0, 0.15, 0.41), 0.185, 0.43, "#", axis="X")
+    cylinder(bm, (0, 0.36, 0.41), 0.153, 0.04, "m", axis="X")
+    cylinder(bm, (0, 0.38, 0.42), 0.066, 0.045, "e", axis="X")
+    cylinder(bm, (0, 0.25, 0.68), 0.068, 0.18, "m")
+    cylinder(bm, (0, 0.25, 0.78), 0.087, 0.045, "m")
+    box(bm, (0, 0.4, 0.17), (0.54, 0.14, 0.10), "#")
 
 
 def build_straight(bm):
-    voxels(bm, ["""
-        .##.
-        .##.
-        .##.
-        .##.
-        """, """
-        ....
-        .*..
-        ....
-        .*..
-        """])
+    chassis(bm)
+    coupler(bm, 0, 1)
+    coupler(bm, 0, -1)
+    box(bm, (0, 0, 0.42), (0.56, 0.65, 0.36), "#")
+    box(bm, (0, 0, 0.49), (0.57, 0.66, 0.19), "c")
+    box(bm, (0, 0, 0.63), (0.61, 0.70, 0.08), "m")
+    for x in (-0.289, 0.289):
+        for y in (-0.20, 0, 0.20):
+            box(bm, (x, y, 0.49), (0.018, 0.13, 0.10), "g")
 
 
 def build_turn(bm):
-    voxels(bm, ["""
-        ....
-        .###
-        .###
-        .##.
-        """])
+    # A short square coach connects the back of the tile to its right side.
+    chassis(bm)
+    coupler(bm, 0, -1)
+    coupler(bm, 1, 0)
+    box(bm, (0.035, -0.035, 0.42), (0.55, 0.55, 0.36), "#")
+    box(bm, (0.035, -0.035, 0.49), (0.56, 0.56, 0.19), "c")
+    box(bm, (0.035, -0.035, 0.63), (0.60, 0.60, 0.08), "m")
+    for offset in (-0.10, 0.10):
+        box(bm, (0.325, offset - 0.035, 0.49), (0.02, 0.14, 0.10), "g")
+        box(bm, (offset + 0.035, -0.325, 0.49), (0.14, 0.02, 0.10), "g")
 
 
 def build_tail(bm):
-    voxels(bm, ["""
-        .##.
-        .##.
-        ..#.
-        ..o.
-        """])
+    chassis(bm)
+    coupler(bm, 0, 1)
+    box(bm, (0, 0.02, 0.40), (0.52, 0.53, 0.32), "#")
+    box(bm, (0, 0.02, 0.58), (0.60, 0.61, 0.075), "m")
+    box(bm, (0, 0.055, 0.66), (0.35, 0.27, 0.12), "#")
+    box(bm, (0, 0.055, 0.75), (0.40, 0.32, 0.064), "m")
+    for x in (-0.17, 0.17):
+        box(bm, (x, -0.25, 0.37), (0.08, 0.035, 0.07), "o")
 
 
 def build_floor(bm):
     voxels(bm, ["""
-        ssst
+        ssss
+        stts
         stss
         ssss
-        tsss
         """], below_ground=1)
 
 
 def build_wall(bm):
-    voxels(bm, ["""
-        wwww
-        wwww
-        wwww
-        wwww
-        """] * 3)
+    box(bm, (0, 0, 0.10), (1.0, 1.0, 0.20), "w")
+    box(bm, (0, 0, 0.34), (0.91, 0.91, 0.29), "m")
+    box(bm, (0, 0, 0.50), (0.96, 0.96, 0.065), "*")
+    box(bm, (0, 0, 0.558), (0.91, 0.91, 0.052), "m")
 
 
 def build_passenger(bm):
@@ -217,7 +249,7 @@ def build_passenger(bm):
         """])
 
 
-PIECES = {  # the dragon kit; the game finds each mesh by these names
+PIECES = {  # the train kit; the game finds each mesh by these names
     "head": build_head,
     "straight": build_straight,
     "turn": build_turn,

@@ -14,8 +14,8 @@ Two items from two different groups (see the D4 guide's "The menu" tab).
 
 | Item | Group | Done when (in your words) |
 | --- | --- | --- |
-| _item_ | _group_ | _what you will be able to show_ |
-| _item_ | _group_ | _what you will be able to show_ |
+| Text-file levels | Language | We can play three yards drawn as text maps. A legend explains the tiles, and we can add a yard without editing the game code. Tests load each map and check that the train has a clear start. |
+| Scripted sound effects | Content | Starting a run, picking up a passenger, and crashing each play a distinct sound. A script makes all three sounds, and game signals trigger them. |
 
 ## Words we use
 
@@ -25,8 +25,8 @@ already here from the starter; keep them accurate as you change things.
 | Word | Meaning | In code |
 | --- | --- | --- |
 | cell | one square of the grid | `Vector2i` |
-| session | one run at the game, from the first tick until it ends; owns the board and the dragon | `Session` in `core/session.gd` |
-| tick | one step of the rules; the dragon moves one cell | `Session.tick()`, `Dragon.tick()` |
+| session | one run, from waiting for the first arrow key to crashing | `Session` in `core/session.gd` |
+| tick | a step of the rules in which the moving train advances one cell if the way is clear | `Session.tick()`, `Dragon.tick()` |
 | tile kind | what a cell is made of, such as `floor` or `wall` | `Board.TILES`, `TILES` in `tools/build_art.py` |
 | piece | one model in the kit: head, straight, turn, tail | `Kit.Piece`, `PIECES` in `tools/build_art.py` |
 | passenger | a pickup that adds one carriage and one point | `Session.passenger_cell`, `Session.score` |
@@ -64,4 +64,4 @@ versions we run (Godot 4.7, Blender 5.2). Add a row when a decision depends on o
 
 | Claim | Source (link) | How we checked it |
 | --- | --- | --- |
-| _what the tool does_ | _manual page or source file_ | _what we ran or looked at_ |
+| The unconnected Principled BSDF Base Color is exported as the glTF material's base color. | [Blender 5.2 manual, glTF Base Color](https://docs.blender.org/manual/en/5.2/addons/scene_gltf2.html#base-color) | Rebuilt the kit with `deno task art` and checked that Godot imports the red Train Paint (`#b82f35`) on the locomotive. |
