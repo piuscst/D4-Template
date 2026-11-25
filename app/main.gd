@@ -38,18 +38,30 @@ func _ready() -> void:
 
 ## Input arrives as events, so even a tap shorter than one frame is never missed.
 func _unhandled_input(event: InputEvent) -> void:
+	if session.crashed and event.is_action_pressed("ui_accept"):
+		_restart()
+		return
 	for action in DIRECTIONS:
 		if event.is_action_pressed(action):
-			session.dragon.turn(DIRECTIONS[action])
+			session.turn(DIRECTIONS[action])
+			return
 
 
 func _process(delta: float) -> void:
-	_clock += delta
-	while _clock >= TICK_SECONDS:
-		_clock -= TICK_SECONDS
-		session.tick()
-		_draw_session()
+	if session.started and not session.crashed:
+		_clock += delta
+		while _clock >= TICK_SECONDS and not session.crashed:
+			_clock -= TICK_SECONDS
+			session.tick()
+			_draw_session()
 	_follow(delta)
+
+
+func _restart() -> void:
+	session = Session.new(GRID)
+	_clock = 0.0
+	camera.position = _center(session.dragon.body[0]) + CAMERA_OFFSET
+	_draw_session()
 
 
 ## Sky, light, and tiles live in app/stage.gd; the camera follows the head.
@@ -71,6 +83,10 @@ func _draw_session() -> void:
 	if passenger.visible:
 		passenger.position = _center(session.passenger_cell)
 	score_label.text = "Passengers: %d" % session.score
+	if session.crashed:
+		score_label.text += "\nTrain stopped! Press Enter to restart."
+	elif not session.started:
+		score_label.text += "\nPress an arrow key to start."
 	_draw_dragon()
 
 

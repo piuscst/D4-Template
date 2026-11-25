@@ -10,6 +10,8 @@ var board: Board
 var dragon: Dragon
 var passenger_cell := NO_PASSENGER
 var score := 0
+var started := false
+var crashed := false
 var _rng := RandomNumberGenerator.new()
 
 
@@ -20,10 +22,27 @@ func _init(grid_size: Vector2i, passenger_seed := 1) -> void:
 	_place_passenger()
 
 
+func turn(direction: Vector2i) -> void:
+	if crashed:
+		return
+	started = true
+	dragon.turn(direction)
+
+
 func tick() -> void:
+	if not started or crashed:
+		return
+
+	var head := dragon.next_head()
 	var old_tail: Vector2i = dragon.body.back()
+	var collecting := head == passenger_cell
+	var hits_body := dragon.body.has(head) and (head != old_tail or collecting)
+	if board.is_solid(head) or hits_body:
+		crashed = true
+		return
+
 	dragon.tick()
-	if dragon.body[0] == passenger_cell:
+	if collecting:
 		dragon.body.append(old_tail)
 		score += 1
 		_place_passenger()

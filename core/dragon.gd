@@ -4,14 +4,12 @@ extends RefCounted
 
 const MAX_QUEUED_TURNS := 2
 
-var size: Vector2i
 var body: Array[Vector2i] = []  # head first
 var heading := Vector2i.RIGHT
 var _turns: Array[Vector2i] = []  # turns wait here until the next tick (Command)
 
 
 func _init(grid_size: Vector2i, length := 4) -> void:
-	size = grid_size
 	@warning_ignore("integer_division")  # the middle cell, rounded down, on purpose
 	var start := grid_size / 2
 	for i in length:
@@ -27,11 +25,15 @@ func turn(direction: Vector2i) -> void:
 	_turns.append(direction)
 
 
-## Advance one cell, taking the next queued turn first. Wrapping around the grid is a
-## placeholder: once Session ends the run at solid tiles, the dragon never reaches an edge.
+func next_head() -> Vector2i:
+	var next_heading := heading if _turns.is_empty() else _turns[0]
+	return body[0] + next_heading
+
+
+## Advance one cell, taking the next queued turn first.
 func tick() -> void:
+	var head := next_head()
 	if not _turns.is_empty():
 		heading = _turns.pop_front()
-	var head := body[0] + heading
-	body.push_front(Vector2i(posmod(head.x, size.x), posmod(head.y, size.y)))
+	body.push_front(head)
 	body.pop_back()
